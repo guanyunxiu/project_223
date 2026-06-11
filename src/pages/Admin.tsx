@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Upload, Image as ImageIcon, Video } from 'lucide-react';
 import { Modal, message } from 'antd';
 import { fetchCourseList, addCourse, removeCourse } from '@/api/api';
 import type { CourseInput, ChapterInput, LessonInput, CourseListItem } from '@/types';
@@ -19,6 +19,7 @@ interface LessonForm {
   title: string;
   videoUrl: string;
   durationSec: string;
+  localVideoFile?: File | null;
 }
 
 interface ChapterForm {
@@ -27,11 +28,33 @@ interface ChapterForm {
 }
 
 function emptyLesson(): LessonForm {
-  return { title: '', videoUrl: DEFAULT_VIDEO, durationSec: '' };
+  return { title: '', videoUrl: DEFAULT_VIDEO, durationSec: '', localVideoFile: null };
 }
 
 function emptyChapter(): ChapterForm {
   return { title: '', lessons: [emptyLesson()] };
+}
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(Math.floor(video.duration));
+    };
+    video.onerror = reject;
+    video.src = URL.createObjectURL(file);
+  });
 }
 
 export default function Admin() {
@@ -40,8 +63,13 @@ export default function Admin() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string>('');
   const [chapters, setChapters] = useState<ChapterForm[]>([emptyChapter()]);
   const [submitting, setSubmitting] = useState(false);
+
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data: courses = [] } = useQuery({
     queryKey: ['courseList'],
@@ -52,6 +80,8 @@ export default function Admin() {
     setTitle('');
     setDescription('');
     setCoverUrl('');
+    setCoverFile(null);
+    setCoverPreview('');
     setChapters([emptyChapter()]);
   };
 
@@ -63,6 +93,55 @@ export default function Admin() {
   const closeModal = () => {
     setShowModal(false);
     resetForm();
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      message.error('请选择图片文件');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('图片大小不能超过 5MB');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setCoverFile(file);
+      setCoverPreview(dataUrl);
+      setCoverUrl(dataUrl);
+    } catch {
+      message.error('图片读取失败');
+    }
+  };
+
+  const handleVideoUpload = async (chIdx: number, lesIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      message.error('请选择视频文件');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      const duration = await getVideoDuration(file);
+
+      const updated = [...chapters];
+      updated[chIdx].lessons[lesIdx].videoUrl = dataUrl;
+      updated[chIdx].lessons[lesIdx].durationSec = String(duration);
+      updated[chIdx].lessons[lesIdx].localVideoFile = file;
+      setChapters(updated);
+
+      message.success(`视频上传成功，时长 ${formatDuration(duration)}`);
+    } catch {
+      message.error('视频读取失败');
+    }
   };
 
   const addChapter = () => {
@@ -128,7 +207,7 @@ export default function Admin() {
       return;
     }
     if (!coverUrl.trim()) {
-      message.error('请输入课程封面 URL');
+      message.error('请上传或输入课程封面');
       return;
     }
 
@@ -145,7 +224,7 @@ export default function Admin() {
           return;
         }
         if (!les.videoUrl.trim()) {
-          message.error(`第 ${ci + 1} 章 第 ${li + 1} 节请输入视频地址`);
+          message.error(`第 ${ci + 1} 章 第 ${li + 1} 节请上传视频或输入视频地址`);
           return;
         }
         const dur = parseInt(les.durationSec, 10);
@@ -257,13 +336,52 @@ export default function Admin() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>封面图片 URL</label>
+                <label className={styles.formLabel}>课程封面</label>
+                <div className={styles.coverUploadArea}>
+                  {coverPreview ? (
+                    <div className={styles.coverPreview}>
+                      <img src={coverPreview} alt="封面预览" />
+                      <button
+                        className={styles.removeCoverButton}
+                        onClick={() => {
+                          setCoverPreview('');
+                          setCoverFile(null);
+                          setCoverUrl('');
+                          if (coverInputRef.current) coverInputRef.current.value = '';
+                        }}
+                      >
+                        <X size={14} /> 移除
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className={styles.uploadPlaceholder}
+                      onClick={() => coverInputRef.current?.click()}
+                    >
+                      <ImageIcon size={32} className={styles.uploadIcon} />
+                      <p>点击上传封面图片</p>
+                      <span>支持 JPG、PNG 格式，不超过 5MB</span>
+                    </div>
+                  )}
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleCoverUpload}
+                  />
+                </div>
+                <div className={styles.orDivider}>或输入图片 URL</div>
                 <input
                   className={styles.formInput}
                   type="text"
                   placeholder="请输入封面图片 URL"
-                  value={coverUrl}
-                  onChange={(e) => setCoverUrl(e.target.value)}
+                  value={coverFile ? '' : coverUrl}
+                  onChange={(e) => {
+                    setCoverUrl(e.target.value);
+                    setCoverPreview(e.target.value);
+                  }}
+                  disabled={!!coverFile}
                 />
               </div>
 
@@ -313,7 +431,7 @@ export default function Admin() {
                               </button>
                             )}
                           </div>
-                          <div className={styles.lessonRow}>
+                          <div className={styles.formGroup} style={{ marginBottom: 10 }}>
                             <input
                               className={styles.formInput}
                               type="text"
@@ -321,21 +439,50 @@ export default function Admin() {
                               value={lesson.title}
                               onChange={(e) => updateLesson(chIdx, lesIdx, 'title', e.target.value)}
                             />
+                          </div>
+                          <div className={styles.videoUploadRow}>
+                            <div
+                              className={styles.videoUploadBtn}
+                              onClick={() => {
+                                const key = `${chIdx}-${lesIdx}`;
+                                videoInputRefs.current[key]?.click();
+                              }}
+                            >
+                              <Video size={16} />
+                              <span>{lesson.localVideoFile ? '重新上传视频' : '上传本地视频'}</span>
+                            </div>
                             <input
-                              className={styles.formInput}
-                              type="number"
-                              placeholder="视频时长(秒)"
-                              value={lesson.durationSec}
-                              onChange={(e) => updateLesson(chIdx, lesIdx, 'durationSec', e.target.value)}
+                              ref={(el) => {
+                                const key = `${chIdx}-${lesIdx}`;
+                                videoInputRefs.current[key] = el;
+                              }}
+                              type="file"
+                              accept="video/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => handleVideoUpload(chIdx, lesIdx, e)}
+                            />
+                            <input
+                              className={`${styles.formInput} ${styles.videoUrlInput}`}
+                              type="text"
+                              placeholder="或输入视频地址 URL"
+                              value={lesson.videoUrl}
+                              onChange={(e) => updateLesson(chIdx, lesIdx, 'videoUrl', e.target.value)}
                             />
                           </div>
                           <input
                             className={styles.formInput}
-                            type="text"
-                            placeholder="视频地址 URL"
-                            value={lesson.videoUrl}
-                            onChange={(e) => updateLesson(chIdx, lesIdx, 'videoUrl', e.target.value)}
+                            type="number"
+                            placeholder="视频时长(秒)"
+                            value={lesson.durationSec}
+                            onChange={(e) => updateLesson(chIdx, lesIdx, 'durationSec', e.target.value)}
+                            style={{ marginTop: 10 }}
                           />
+                          {lesson.localVideoFile && (
+                            <div className={styles.uploadedFileInfo}>
+                              <Upload size={12} />
+                              <span>{lesson.localVideoFile.name}</span>
+                            </div>
+                          )}
                         </div>
                       ))}
                       <button

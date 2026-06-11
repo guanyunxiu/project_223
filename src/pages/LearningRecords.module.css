@@ -116,9 +116,22 @@
 
 .progressText {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--color-primary);
+  font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.progressDetail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.progressDetail span {
+  font-size: 12px;
 }
 
 .time {

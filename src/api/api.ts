@@ -88,13 +88,17 @@ export function fetchLearningRecords(): LearningRecord[] {
     const allLessons = getAllLessons(cid);
     let latest: LearningProgress | null = null;
     let completedCount = 0;
+    let watchedSec = 0;
+    let totalSec = 0;
     for (const les of allLessons) {
+      totalSec += les.durationSec;
       const p = map[`${cid}::${les.id}`];
       if (p) {
         if (!latest || p.lastWatchedAt > latest.lastWatchedAt) {
           latest = p;
         }
         if (p.completed) completedCount++;
+        watchedSec += Math.min(p.watchedSec, les.durationSec);
       }
     }
     if (!latest) return;
@@ -110,6 +114,9 @@ export function fetchLearningRecords(): LearningRecord[] {
       totalLessons: allLessons.length,
       completedLessons: completedCount,
       lastWatchedAt: latest.lastWatchedAt,
+      progressPercent: totalSec > 0 ? (watchedSec / totalSec) * 100 : 0,
+      watchedSec,
+      totalSec,
     });
   });
 

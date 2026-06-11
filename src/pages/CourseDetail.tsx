@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Spin } from 'antd';
+import { PlayCircleFilled } from '@ant-design/icons';
 import { fetchCourseDetail } from '@/api/api';
 import ChapterTree from '@/components/ChapterTree';
 import { useProgressStore } from '@/store/useProgressStore';
@@ -17,10 +18,16 @@ function formatDuration(sec: number): string {
   return `${m} 分钟`;
 }
 
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const loadCourseProgress = useProgressStore((s) => s.loadCourseProgress);
+  const getCourseProgress = useProgressStore((s) => s.getCourseProgress);
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
 
   const { data: course, isLoading, isError } = useQuery({
     queryKey: ['courseDetail', courseId],
@@ -57,6 +64,16 @@ export default function CourseDetail() {
     0,
   );
 
+  const courseProgress = getCourseProgress(course);
+
+  const firstLesson = course.chapters[0]?.lessons[0];
+
+  const handleContinueLearning = () => {
+    if (firstLesson) {
+      navigate(`/course/${course.id}/lesson/${firstLesson.id}`);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -67,6 +84,10 @@ export default function CourseDetail() {
               src={course.coverUrl}
               alt={course.title}
             />
+            <div className={styles.playOverlay} onClick={handleContinueLearning}>
+              <PlayCircleFilled className={styles.playIconLarge} />
+              <span className={styles.playText}>开始学习</span>
+            </div>
           </div>
           <div className={styles.info}>
             <h1 className={styles.title}>{course.title}</h1>
@@ -95,6 +116,24 @@ export default function CourseDetail() {
                   {totalLessons}
                 </span>
                 <span className={styles.statLabel}>课时数</span>
+              </div>
+            </div>
+            <div className={styles.progressSection}>
+              <div className={styles.progressHeader}>
+                <span className={styles.progressLabel}>学习进度</span>
+                <span className={styles.progressPercent}>
+                  {formatPercent(courseProgress.percentage)}
+                </span>
+              </div>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{ width: `${courseProgress.percentage}%` }}
+                />
+              </div>
+              <div className={styles.progressDetail}>
+                <span>已完成 {courseProgress.completedLessons}/{courseProgress.totalLessons} 节</span>
+                <span>{formatDuration(courseProgress.watchedSec)} / {formatDuration(courseProgress.totalSec)}</span>
               </div>
             </div>
           </div>

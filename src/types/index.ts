@@ -44,6 +44,9 @@ export interface LearningRecord {
   totalLessons: number;
   completedLessons: number;
   lastWatchedAt: string;
+  progressPercent: number;
+  watchedSec: number;
+  totalSec: number;
 }
 
 export interface CourseListItem {

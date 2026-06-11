@@ -25,9 +25,6 @@ function formatRelativeTime(isoString: string): string {
 
 function RecordCard({ record }: { record: LearningRecord }) {
   const navigate = useNavigate();
-  const percent = Math.round(
-    (record.completedLessons / record.totalLessons) * 100,
-  );
 
   return (
     <div
@@ -46,13 +43,16 @@ function RecordCard({ record }: { record: LearningRecord }) {
         </p>
         <div className={styles.progressRow}>
           <div className={styles.progressBar}>
-            <Progress percent={percent} size="small" />
+            <Progress percent={Math.round(record.progressPercent)} size="small" />
           </div>
           <span className={styles.progressText}>
-            {record.completedLessons}/{record.totalLessons} 节已完成
+            {record.progressPercent.toFixed(1)}%
           </span>
         </div>
-        <p className={styles.time}>{formatRelativeTime(record.lastWatchedAt)}</p>
+        <div className={styles.progressDetail}>
+          <span>{record.completedLessons}/{record.totalLessons} 节</span>
+          <p className={styles.time}>{formatRelativeTime(record.lastWatchedAt)}</p>
+        </div>
       </div>
     </div>
   );

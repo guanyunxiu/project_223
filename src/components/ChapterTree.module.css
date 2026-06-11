@@ -9,10 +9,26 @@
   width: 100%;
 }
 
+.chapterTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .chapterTitle {
   font-weight: 600;
   font-size: 1rem;
   color: var(--color-text);
+}
+
+.lockIcon {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.chapterProgressWrap {
+  display: flex;
+  align-items: center;
 }
 
 .lessonBadge {
@@ -53,6 +69,19 @@
   border-bottom: none;
 }
 
+.lessonLocked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.lessonLocked:hover {
+  background: transparent;
+}
+
+.lessonLocked .lessonTitle {
+  color: var(--color-text-muted);
+}
+
 .playIcon {
   font-size: 18px;
   color: var(--color-accent);
@@ -77,5 +106,11 @@
 .completedIcon {
   font-size: 18px;
   color: var(--color-success);
+  flex-shrink: 0;
+}
+
+.lockIconLesson {
+  font-size: 18px;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
