@@ -35,15 +35,6 @@ function emptyChapter(): ChapterForm {
   return { title: '', lessons: [emptyLesson()] };
 }
 
-function readFileAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 function getVideoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
@@ -95,7 +86,7 @@ export default function Admin() {
     resetForm();
   };
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -109,14 +100,10 @@ export default function Admin() {
       return;
     }
 
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-      setCoverFile(file);
-      setCoverPreview(dataUrl);
-      setCoverUrl(dataUrl);
-    } catch {
-      message.error('图片读取失败');
-    }
+    const objectUrl = URL.createObjectURL(file);
+    setCoverFile(file);
+    setCoverPreview(objectUrl);
+    setCoverUrl(objectUrl);
   };
 
   const handleVideoUpload = async (chIdx: number, lesIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,11 +116,11 @@ export default function Admin() {
     }
 
     try {
-      const dataUrl = await readFileAsDataURL(file);
+      const objectUrl = URL.createObjectURL(file);
       const duration = await getVideoDuration(file);
 
       const updated = [...chapters];
-      updated[chIdx].lessons[lesIdx].videoUrl = dataUrl;
+      updated[chIdx].lessons[lesIdx].videoUrl = objectUrl;
       updated[chIdx].lessons[lesIdx].durationSec = String(duration);
       updated[chIdx].lessons[lesIdx].localVideoFile = file;
       setChapters(updated);

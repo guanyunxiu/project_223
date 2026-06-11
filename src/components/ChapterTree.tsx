@@ -24,10 +24,9 @@ interface ChapterTreeProps {
 
 export default function ChapterTree({ course }: ChapterTreeProps) {
   const navigate = useNavigate();
-  const getProgress = useProgressStore((s) => s.getProgress);
+  const progressMap = useProgressStore((s) => s.progressMap);
   const isLessonUnlocked = useProgressStore((s) => s.isLessonUnlocked);
   const isChapterUnlocked = useProgressStore((s) => s.isChapterUnlocked);
-  const getChapterProgress = useProgressStore((s) => s.getChapterProgress);
 
   const handleLessonClick = (chapterId: string, lessonId: string) => {
     if (isLessonUnlocked(course, chapterId, lessonId)) {
@@ -39,8 +38,12 @@ export default function ChapterTree({ course }: ChapterTreeProps) {
 
   const items = sortedChapters.map((chapter) => {
     const chapterUnlocked = isChapterUnlocked(course, chapter.id);
-    const chapterProgress = getChapterProgress(course, chapter.id);
     const sortedLessons = [...chapter.lessons].sort((a, b) => a.sortOrder - b.sortOrder);
+    let completedCount = 0;
+    sortedLessons.forEach((les) => {
+      const key = `${course.id}::${les.id}`;
+      if (progressMap[key]?.completed) completedCount++;
+    });
 
     return {
       key: chapter.id,
@@ -52,7 +55,7 @@ export default function ChapterTree({ course }: ChapterTreeProps) {
           </div>
           <div className={styles.chapterProgressWrap}>
             <span className={styles.lessonBadge}>
-              {chapterProgress.completed}/{chapter.lessons.length} 节
+              {completedCount}/{chapter.lessons.length} 节
             </span>
           </div>
         </div>
@@ -60,7 +63,8 @@ export default function ChapterTree({ course }: ChapterTreeProps) {
       children: (
         <ul className={styles.lessonList}>
           {sortedLessons.map((lesson) => {
-            const progress = getProgress(course.id, lesson.id);
+            const key = `${course.id}::${lesson.id}`;
+            const progress = progressMap[key];
             const isCompleted = progress?.completed ?? false;
             const unlocked = chapterUnlocked && isLessonUnlocked(course, chapter.id, lesson.id);
             return (

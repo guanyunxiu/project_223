@@ -15,7 +15,6 @@ export default function SidebarNav({ course, currentLessonId, courseId }: Sideba
   const progressMap = useProgressStore((s) => s.progressMap);
   const isLessonUnlocked = useProgressStore((s) => s.isLessonUnlocked);
   const isChapterUnlocked = useProgressStore((s) => s.isChapterUnlocked);
-  const getChapterProgress = useProgressStore((s) => s.getChapterProgress);
 
   const isCompleted = (lessonId: string) => {
     const key = `${courseId}::${lessonId}`;
@@ -36,7 +35,14 @@ export default function SidebarNav({ course, currentLessonId, courseId }: Sideba
       <div className={styles.chapterList}>
         {sortedChapters.map((chapter) => {
           const chapterUnlocked = isChapterUnlocked(course, chapter.id);
-          const chapterProgress = getChapterProgress(course, chapter.id);
+          const sortedLessons = [...chapter.lessons].sort((a, b) => a.sortOrder - b.sortOrder);
+          let completedCount = 0;
+          sortedLessons.forEach((les) => {
+            const key = `${courseId}::${les.id}`;
+            if (progressMap[key]?.completed) completedCount++;
+          });
+          const totalCount = chapter.lessons.length;
+          const chapterPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
           return (
             <div key={chapter.id} className={styles.chapter}>
               <div className={styles.chapterTitle}>
@@ -47,33 +53,31 @@ export default function SidebarNav({ course, currentLessonId, courseId }: Sideba
                 <div className={styles.chapterProgressBar}>
                   <div
                     className={styles.chapterProgressFill}
-                    style={{ width: `${chapterProgress.percentage}%` }}
+                    style={{ width: `${chapterPercentage}%` }}
                   />
                 </div>
                 <span className={styles.chapterProgressText}>
-                  {chapterProgress.completed}/{chapterProgress.total}
+                  {completedCount}/{totalCount}
                 </span>
               </div>
-              {chapter.lessons
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((lesson) => {
-                  const isCurrent = lesson.id === currentLessonId;
-                  const completed = isCompleted(lesson.id);
-                  const unlocked = chapterUnlocked && isLessonUnlocked(course, chapter.id, lesson.id);
-                  return (
-                    <div
-                      key={lesson.id}
-                      className={`${styles.lesson} ${isCurrent ? styles.lessonActive : ''} ${!unlocked ? styles.lessonLocked : ''}`}
-                      onClick={() => handleLessonClick(chapter.id, lesson.id)}
-                    >
-                      <span className={styles.lessonTitle}>{lesson.title}</span>
-                      <div className={styles.lessonIcons}>
-                        {!unlocked && <LockFilled className={styles.lockIconSmall} />}
-                        {completed && <CheckCircleFilled className={styles.completedIcon} />}
-                      </div>
+              {sortedLessons.map((lesson) => {
+                const isCurrent = lesson.id === currentLessonId;
+                const completed = isCompleted(lesson.id);
+                const unlocked = chapterUnlocked && isLessonUnlocked(course, chapter.id, lesson.id);
+                return (
+                  <div
+                    key={lesson.id}
+                    className={`${styles.lesson} ${isCurrent ? styles.lessonActive : ''} ${!unlocked ? styles.lessonLocked : ''}`}
+                    onClick={() => handleLessonClick(chapter.id, lesson.id)}
+                  >
+                    <span className={styles.lessonTitle}>{lesson.title}</span>
+                    <div className={styles.lessonIcons}>
+                      {!unlocked && <LockFilled className={styles.lockIconSmall} />}
+                      {completed && <CheckCircleFilled className={styles.completedIcon} />}
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           );
         })}

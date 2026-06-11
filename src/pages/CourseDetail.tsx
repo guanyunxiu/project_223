@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Spin } from 'antd';
@@ -25,7 +25,7 @@ function formatPercent(value: number): string {
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const loadCourseProgress = useProgressStore((s) => s.loadCourseProgress);
-  const getCourseProgress = useProgressStore((s) => s.getCourseProgress);
+  const progressMap = useProgressStore((s) => s.progressMap);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
@@ -40,6 +40,33 @@ export default function CourseDetail() {
       loadCourseProgress(course);
     }
   }, [course, user, loadCourseProgress]);
+
+  const courseProgress = useMemo(() => {
+    if (!course) return { watchedSec: 0, totalSec: 0, percentage: 0, completedLessons: 0, totalLessons: 0 };
+    let watchedSec = 0;
+    let totalSec = 0;
+    let completedLessons = 0;
+    let totalLessons = 0;
+    course.chapters.forEach((ch) => {
+      ch.lessons.forEach((les) => {
+        totalSec += les.durationSec;
+        totalLessons++;
+        const key = `${course.id}::${les.id}`;
+        const p = progressMap[key];
+        if (p) {
+          watchedSec += Math.min(p.watchedSec, les.durationSec);
+          if (p.completed) completedLessons++;
+        }
+      });
+    });
+    return {
+      watchedSec,
+      totalSec,
+      percentage: totalSec > 0 ? (watchedSec / totalSec) * 100 : 0,
+      completedLessons,
+      totalLessons,
+    };
+  }, [course, progressMap]);
 
   if (isLoading) {
     return (
@@ -63,8 +90,6 @@ export default function CourseDetail() {
     (sum, ch) => sum + ch.lessons.length,
     0,
   );
-
-  const courseProgress = getCourseProgress(course);
 
   const firstLesson = course.chapters[0]?.lessons[0];
 
