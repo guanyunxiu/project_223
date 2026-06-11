@@ -1,0 +1,74 @@
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  max-height: 100vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.courseTitle {
+  padding: 20px 20px 16px;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chapterList {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.chapter {
+  margin-bottom: 4px;
+}
+
+.chapterTitle {
+  padding: 12px 20px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lesson {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 10px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.lesson:hover {
+  background: var(--color-bg);
+}
+
+.lessonActive {
+  background: var(--color-bg-warm);
+  border-left-color: var(--color-accent);
+}
+
+.lessonActive .lessonTitle {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.lessonTitle {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.completedIcon {
+  color: var(--color-success);
+  font-size: 14px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}

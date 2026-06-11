@@ -1,0 +1,31 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.playerArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  min-width: 0;
+}
+
+.lessonInfo {
+  margin-top: 20px;
+}
+
+.lessonTitle {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
