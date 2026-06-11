@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User, UserRole } from '@/types';
 import { login as apiLogin, register as apiRegister, logout as apiLogout, getCurrentUser } from '@/api/api';
+import { useProgressStore } from './useProgressStore';
 
 interface AuthState {
   user: User | null;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: (username, password) => {
     const user = apiLogin(username, password);
     if (user) {
+      useProgressStore.getState().reset();
       set({ user, isAuthenticated: true });
       return { success: true };
     }
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     const user = apiRegister(username, password, role);
     if (user) {
+      useProgressStore.getState().reset();
       set({ user, isAuthenticated: true });
       return { success: true };
     }
@@ -48,6 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     apiLogout();
+    useProgressStore.getState().reset();
     set({ user: null, isAuthenticated: false });
   },
 }));

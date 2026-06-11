@@ -4,15 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Spin } from 'antd';
 import { fetchCourseDetail } from '@/api/api';
 import { useProgressStore } from '@/store/useProgressStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import VideoPlayerCore from '@/components/VideoPlayerCore';
 import SidebarNav from '@/components/SidebarNav';
 import styles from './VideoPlayer.module.css';
 
 export default function VideoPlayer() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
-  const loadProgress = useProgressStore((s) => s.loadProgress);
+  const loadCourseProgress = useProgressStore((s) => s.loadCourseProgress);
   const progressMap = useProgressStore((s) => s.progressMap);
   const reportProgress = useProgressStore((s) => s.reportProgress);
+  const user = useAuthStore((s) => s.user);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ['course', courseId],
@@ -21,10 +23,10 @@ export default function VideoPlayer() {
   });
 
   useEffect(() => {
-    if (courseId && lessonId) {
-      loadProgress(courseId, lessonId);
+    if (course && user) {
+      loadCourseProgress(course);
     }
-  }, [courseId, lessonId, loadProgress]);
+  }, [course, user, loadCourseProgress]);
 
   if (isLoading || !course || !lessonId || !courseId) {
     return (

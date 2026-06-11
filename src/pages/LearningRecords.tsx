@@ -3,6 +3,7 @@ import { Empty, Progress } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { fetchLearningRecords } from '@/api/api';
 import type { LearningRecord } from '@/types';
+import { useAuthStore } from '@/store/useAuthStore';
 import styles from './LearningRecords.module.css';
 
 function formatRelativeTime(isoString: string): string {
@@ -58,9 +59,11 @@ function RecordCard({ record }: { record: LearningRecord }) {
 }
 
 export default function LearningRecords() {
+  const user = useAuthStore((s) => s.user);
   const { data: records = [] } = useQuery({
-    queryKey: ['learningRecords'],
+    queryKey: ['learningRecords', user?.id],
     queryFn: () => fetchLearningRecords(),
+    enabled: !!user,
   });
 
   return (

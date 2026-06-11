@@ -11,11 +11,22 @@ import {
   deleteCourse as mockDeleteCourse,
 } from './mock-data';
 
-const PROGRESS_KEY = 'online-classroom-progress';
+const PROGRESS_KEY_PREFIX = 'online-classroom-progress-';
+
+function getProgressKey(userId: string): string {
+  return `${PROGRESS_KEY_PREFIX}${userId}`;
+}
+
+function getCurrentUserId(): string | null {
+  const user = mockGetCurrentUser();
+  return user ? user.id : null;
+}
 
 function loadProgressMap(): Record<string, LearningProgress> {
+  const userId = getCurrentUserId();
+  if (!userId) return {};
   try {
-    const raw = localStorage.getItem(PROGRESS_KEY);
+    const raw = localStorage.getItem(getProgressKey(userId));
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -23,7 +34,9 @@ function loadProgressMap(): Record<string, LearningProgress> {
 }
 
 function saveProgressMap(map: Record<string, LearningProgress>) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(map));
+  const userId = getCurrentUserId();
+  if (!userId) return;
+  localStorage.setItem(getProgressKey(userId), JSON.stringify(map));
 }
 
 export function fetchCourseList(): CourseListItem[] {

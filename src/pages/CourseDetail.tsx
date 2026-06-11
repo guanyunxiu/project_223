@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Spin } from 'antd';
 import { fetchCourseDetail } from '@/api/api';
 import ChapterTree from '@/components/ChapterTree';
+import { useProgressStore } from '@/store/useProgressStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import styles from './CourseDetail.module.css';
 
 function formatDuration(sec: number): string {
@@ -16,12 +19,20 @@ function formatDuration(sec: number): string {
 
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
+  const loadCourseProgress = useProgressStore((s) => s.loadCourseProgress);
+  const user = useAuthStore((s) => s.user);
 
   const { data: course, isLoading, isError } = useQuery({
     queryKey: ['courseDetail', courseId],
     queryFn: () => Promise.resolve(fetchCourseDetail(courseId!)),
     enabled: !!courseId,
   });
+
+  useEffect(() => {
+    if (course && user) {
+      loadCourseProgress(course);
+    }
+  }, [course, user, loadCourseProgress]);
 
   if (isLoading) {
     return (
